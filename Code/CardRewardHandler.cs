@@ -8,14 +8,18 @@ using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Entities.Rewards;
 using MegaCrit.Sts2.Core.Hooks;
 using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
+using MegaCrit.Sts2.Core.Nodes.CommonUi;
+using MegaCrit.Sts2.Core.Nodes.Rewards;
+using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardSelection;
+using MegaCrit.Sts2.Core.Rewards;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 
 namespace SoulLink.Code;
 
 [HarmonyPatch(typeof(NCardRewardSelectionScreen))]
-public class NCardRewardSelectionScreenPatch
+public class CardRewardHandler
 {
     public static Color LockedColor = new Color(0.7f, 0.7f, 0.7f, 0.9f);
     public static Array<int> RewardQueue = new Array<int>();
@@ -25,7 +29,8 @@ public class NCardRewardSelectionScreenPatch
     //Hovering and/or clicking on cards reorders their position in the scene
     //Cache the positions when the options are created to reliably reflect what slot was clicked
     public static List<NCardHolder> origOrder = new List<NCardHolder>();
-
+    private static List<Sprite2D> LoadedChains = new List<Sprite2D>();
+    
     public static void Init()
     {
         //ChainTexture = ImageTexture.CreateFromImage(Image.LoadFromFile("res://images/SoulLink/Chains.png"));
@@ -65,6 +70,7 @@ public class NCardRewardSelectionScreenPatch
         if (ForcedChoice != -1)
         {
             ForcedChoice = -1;
+            Cleanup();
             return;
         }
         
@@ -82,17 +88,14 @@ public class NCardRewardSelectionScreenPatch
             return;
         }
         
-        SoulLink.Logger.Info("Linking choice index: " + index);
+        SoulLink.Logger.Debug("Linking choice index: " + index);
         RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(new SoulLinkCardRewardAction(me, index));
         
     }
 
     public static void UpdateScreen(NCardRewardSelectionScreen screen)
     {
-        foreach (NCardHolder card in origOrder)
-        {
-            UnlockCard(card);
-        }
+        Cleanup();
         
         if (ForcedChoice == -1)
         {
@@ -130,9 +133,9 @@ public class NCardRewardSelectionScreenPatch
         {
             Sprite2D chain = new Sprite2D();
             chain.Texture = ChainTexture;
-            chain.Name = "ChainTexture";
             chain.Scale = new Vector2(0.5f, 0.5f);
             node.CardNode.AddChild(chain);
+            LoadedChains.Add(chain);
             
             node.CardNode.Modulate = LockedColor;
             node.CardNode.Scale *= 0.75f;
@@ -150,12 +153,6 @@ public class NCardRewardSelectionScreenPatch
             {
                 node.CardNode.Modulate = Colors.White;
                 node.CardNode.Scale /= 0.75f;
-                
-                Node? chainTexture = node.CardNode.FindChild("ChainTexture");
-                if (chainTexture != null)
-                {
-                    chainTexture.QueueFree();
-                }
             }
         }
     }
@@ -190,17 +187,39 @@ public class NCardRewardSelectionScreenPatch
         {
             ForcedChoice = -1;
         }
-        
-        Control? cardRow = __instance.GetNode<Control>("UI/CardRow");
-        if (cardRow == null)
-        {
-            SoulLink.Logger.Error("Failed to find CardRow in NCardRewardSelectionScreen");
-            return;
-        }
+    }
 
-        foreach (NCardHolder card in cardRow.GetChildren().OfType<NCardHolder>())
+    private static void Cleanup()
+    {
+        foreach (NCardHolder card in origOrder)
         {
             UnlockCard(card);
+        }
+        
+        foreach (Sprite2D chain in LoadedChains)
+        {
+            chain.QueueFree();
+        }
+        LoadedChains.Clear();
+    }
+
+    [HarmonyPatch(typeof(NRewardsScreen))]
+    [HarmonyPatch("TryEnableProceedButton")]
+    [HarmonyPrefix]
+    private static bool TryEnableProceedPrefix(NRewardsScreen __instance)
+    {
+        List<Control> rewardButtons = Traverse.Create(__instance).Field<List<Control>>("_rewardButtons").Value;
+        return !rewardButtons.Any((c) => c is NRewardButton { Reward: CardReward });
+    }
+    
+    [HarmonyPatch(typeof(NRewardsScreen))]
+    [HarmonyPatch("SetRewards")]
+    [HarmonyPostfix]
+    private static void SetRewardsPostfix(NRewardsScreen __instance, IEnumerable<Reward> rewards)
+    {
+        if (rewards.Any((c) => c is CardReward))
+        {
+            Traverse.Create(__instance).Field<NProceedButton>("_proceedButton").Value.Disable();
         }
     }
     
@@ -211,5 +230,6 @@ public class NCardRewardSelectionScreenPatch
     {
         ForcedChoice = -1;
         RewardQueue.Clear();
+        Cleanup();
     }
 }

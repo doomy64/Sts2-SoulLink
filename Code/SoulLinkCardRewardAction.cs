@@ -23,17 +23,17 @@ public class SoulLinkCardRewardAction(Player player, int index) : GameAction
             return Task.CompletedTask;
         }
         
-        SoulLink.Logger.Info("Next card selection choice: " + index);
+        SoulLink.Logger.Debug("Next card selection choice: " + index);
         
         IScreenContext? currentScreen = NOverlayStack.Instance?.Peek();
-        if (currentScreen is NCardRewardSelectionScreen screen && NCardRewardSelectionScreenPatch.ForcedChoice == -1)
+        if (currentScreen is NCardRewardSelectionScreen screen && CardRewardHandler.ForcedChoice == -1)
         {
-            NCardRewardSelectionScreenPatch.ForcedChoice = index;
-            NCardRewardSelectionScreenPatch.UpdateScreen(screen);
+            CardRewardHandler.ForcedChoice = index;
+            CardRewardHandler.UpdateScreen(screen);
         }
         else
         {
-            NCardRewardSelectionScreenPatch.RewardQueue.Add(index);
+            CardRewardHandler.RewardQueue.Add(index);
         }
         
         return Task.CompletedTask;

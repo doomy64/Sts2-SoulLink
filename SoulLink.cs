@@ -18,7 +18,7 @@ public partial class SoulLink : Node
     public static void Initialize()
     {
         Harmony harmony = new(ModId);
-        NCardRewardSelectionScreenPatch.Init();
+        CardRewardHandler.Init();
 
         harmony.PatchAll();
     }
