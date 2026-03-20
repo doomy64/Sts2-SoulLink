@@ -173,11 +173,11 @@ public class CardRewardHandler
         TaskCompletionSource<Tuple<IEnumerable<NCardHolder>, bool>> completionSource = Traverse.Create(__instance)
             .Field("_completionSource").GetValue<TaskCompletionSource<Tuple<IEnumerable<NCardHolder>, bool>>>();
 
-        if (completionSource != null && afterSelected != PostAlternateCardRewardAction.DoNothing && ForcedChoice == -1)
+        if (completionSource != null && afterSelected != PostAlternateCardRewardAction.DoNothing)
         {
             completionSource.SetResult(new Tuple<IEnumerable<NCardHolder>, bool>(System.Array.Empty<NCardHolder>(), true));
             Player? me = SoulLinkHelpers.GetLocalPlayer();
-            if (me != null)
+            if (me != null && ForcedChoice == -1)
             {
                 RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(new SoulLinkCardRewardAction(me, -2)); 
             }
