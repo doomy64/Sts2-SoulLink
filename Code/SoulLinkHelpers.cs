@@ -14,6 +14,12 @@ public static class SoulLinkHelpers
         return me;
     }
 
+    public static List<Player> GetAllPlayers()
+    {
+        RunState state = Traverse.Create(RunManager.Instance).Property<RunState>("State").Value;
+        return state.Players.ToList();
+    }
+    
     public static int GetPlayerIndex(Player player)
     {
         return player?.RunState == null ? -1 : player.RunState.Players.ToList().IndexOf(player);

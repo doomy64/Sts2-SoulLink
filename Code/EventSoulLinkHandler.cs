@@ -50,7 +50,7 @@ public class EventSoulLinkHandler
     [HarmonyPrefix]
     private static bool ClearOptionsPrefix(NEventLayout __instance)
     {
-        return !InsideButtonPress;
+        return !InsideButtonPress || SoulLinkHelpers.GetAllPlayers().Count == 1;
     }
     
 }
