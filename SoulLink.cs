@@ -1,7 +1,7 @@
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Modding;
-using SoulLink.Code;
+using SoulLink.Code.Cards;
 
 namespace SoulLink;
 

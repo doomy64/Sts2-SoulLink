@@ -3,7 +3,7 @@ using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 
-namespace SoulLink.Code;
+namespace SoulLink.Code.Cards;
 
 public class NetSoulLinkCardRewardAction : INetAction, IPacketSerializable
 {

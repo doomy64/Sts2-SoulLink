@@ -2,13 +2,11 @@
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
-using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardSelection;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Nodes.Screens.ScreenContext;
-using MegaCrit.Sts2.Core.Runs;
 
-namespace SoulLink.Code;
+namespace SoulLink.Code.Cards;
 
 public class SoulLinkCardRewardAction(Player player, int index) : GameAction
 {

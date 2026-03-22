@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices.JavaScript;
-using Godot;
+﻿using Godot;
 using Godot.Collections;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.CardRewardAlternatives;
@@ -16,7 +15,7 @@ using MegaCrit.Sts2.Core.Rewards;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace SoulLink.Code;
+namespace SoulLink.Code.Cards;
 
 [HarmonyPatch(typeof(NCardRewardSelectionScreen))]
 public class CardRewardHandler
