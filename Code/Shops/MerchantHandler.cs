@@ -369,23 +369,23 @@ public static class MerchantHandler
         List<int> currentCards = new List<int>();
         inventory.CardEntries.Do(c =>
         {
-            currentCards.Add(c.Cost);
+            currentCards.Add(c.IsStocked ? c.Cost : -1);
         });
 
         List<int> currentRelics = new List<int>();
         inventory.RelicEntries.Do(r =>
         {
-            currentRelics.Add(r.Cost);
+            currentRelics.Add(r.IsStocked ? r.Cost : -1);
         });
         
         List<int> currentPotions = new List<int>();
         inventory.PotionEntries.Do(p =>
         {
-            currentPotions.Add(p.Cost);
+            currentPotions.Add(p.IsStocked ? p.Cost : -1);
         });
 
         int removal = -1;
-        if (inventory.CardRemovalEntry != null)
+        if (inventory.CardRemovalEntry != null && inventory.CardRemovalEntry.IsStocked)
         {
             removal = inventory.CardRemovalEntry.Cost;
         }
