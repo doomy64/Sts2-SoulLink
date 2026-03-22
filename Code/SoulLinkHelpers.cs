@@ -20,7 +20,7 @@ public static class SoulLinkHelpers
         return state.Players.ToList();
     }
     
-    public static int GetPlayerIndex(Player player)
+    public static int GetPlayerIndex(Player? player)
     {
         return player?.RunState == null ? -1 : player.RunState.Players.ToList().IndexOf(player);
     }
