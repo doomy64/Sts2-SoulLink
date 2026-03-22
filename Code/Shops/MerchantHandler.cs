@@ -301,14 +301,15 @@ public static class MerchantHandler
             return;
         
         List<NMerchantSlot> slots = inventory.FindChildren("*").Where(n => n is NMerchantSlot).Cast<NMerchantSlot>().ToList();
+        NMapScreen? map = NMapScreen.Instance;
         
         if (ForcedBuys.Count == 0)
         {
             slots.Do(slot => slot.Modulate = NormalColor);
+            map?.SetTravelEnabled(true);
             return;
         }
         
-        NMapScreen? map = NMapScreen.Instance;
         if (map != null)
         {
             map.SetTravelEnabled(false);
