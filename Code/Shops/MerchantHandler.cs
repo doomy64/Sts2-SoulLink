@@ -3,6 +3,9 @@ using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Merchant;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.GameActions;
+using MegaCrit.Sts2.Core.Hooks;
+using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Relics;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 using MegaCrit.Sts2.Core.Nodes.Screens.Shops;
@@ -66,6 +69,11 @@ public static class MerchantHandler
         }
 
         return true;
+    }
+
+    public static void SyncPrices()
+    {
+        
     }
 
     public static void Purchase(ShopSlot slot, int index)
@@ -331,7 +339,6 @@ public static class MerchantHandler
             slot.Modulate = ForcedBuys.All(t => t.Item1 != itemSlot || t.Item2 != index) ? FadedColor : NormalColor;
 
         }
-        //TODO Re-sync prices when buying Membership Card or Courier
     }
 
     [HarmonyPatch(typeof(NMapScreen), "SetTravelEnabled")]
@@ -340,5 +347,50 @@ public static class MerchantHandler
     {
         if (NMerchantRoom.Instance != null && ForcedBuys.Count > 0)
             enabled = false;
+        
+    }
+
+    [HarmonyPatch(typeof(Player), "AddRelicInternal")]
+    [HarmonyPostfix]
+    private static void AddRelicPatch(Player __instance, RelicModel relic, int index, bool silent)
+    {
+        if (!(relic is TheCourier) && !(relic is MembershipCard))
+            return;
+
+        NMerchantRoom? room = NMerchantRoom.Instance;
+        if (room == null)
+            return;
+        
+        MerchantInventory? inventory = room.Inventory.Inventory;
+        if (inventory == null)
+            return;
+        
+        List<int> currentCards = new List<int>();
+        inventory.CardEntries.Do(c =>
+        {
+            currentCards.Add(c.Cost);
+        });
+
+        List<int> currentRelics = new List<int>();
+        inventory.RelicEntries.Do(r =>
+        {
+            currentRelics.Add(r.Cost);
+        });
+        
+        List<int> currentPotions = new List<int>();
+        inventory.PotionEntries.Do(p =>
+        {
+            currentPotions.Add(p.Cost);
+        });
+
+        int removal = -1;
+        if (inventory.CardRemovalEntry != null)
+        {
+            removal = inventory.CardRemovalEntry.Cost;
+        }
+
+        RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(
+            new SoulLinkPriceSyncAction(__instance, currentCards, currentRelics, currentPotions, removal));
+
     }
 }
