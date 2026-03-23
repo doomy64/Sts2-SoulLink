@@ -301,21 +301,15 @@ public static class MerchantHandler
             return;
         
         List<NMerchantSlot> slots = inventory.FindChildren("*").Where(n => n is NMerchantSlot).Cast<NMerchantSlot>().ToList();
-        NMapScreen? map = NMapScreen.Instance;
         
         if (ForcedBuys.Count == 0)
         {
             slots.Do(slot => slot.Modulate = NormalColor);
-            map?.SetTravelEnabled(true);
+            NMapScreen.Instance?.SetTravelEnabled(true);
             return;
         }
         
-        if (map != null)
-        {
-            map.SetTravelEnabled(false);
-            RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(new VoteForMapCoordAction(
-                me, new RunLocation(me.RunState.CurrentMapCoord, me.RunState.CurrentActIndex), null));
-        }
+        SoulLinkHelpers.PreventTravel();
         
         foreach (NMerchantSlot slot in slots)
         {

@@ -1,14 +1,20 @@
-﻿using MegaCrit.Sts2.Core.Entities.Multiplayer;
+﻿using Godot;
+using HarmonyLib;
+using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
+using MegaCrit.Sts2.Core.Nodes.CommonUi;
+using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
+using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardSelection;
+using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Nodes.Screens.ScreenContext;
 
 namespace SoulLink.Code.Cards;
 
-public class SoulLinkCardRewardAction(Player player, int index) : GameAction
+public class SoulLinkCardRewardAction(Player player, int packIndex, int cardIndex) : GameAction
 {
     public override ulong OwnerId => player.NetId;
 
@@ -21,17 +27,22 @@ public class SoulLinkCardRewardAction(Player player, int index) : GameAction
             return Task.CompletedTask;
         }
         
-        SoulLink.Logger.Debug("Next card selection choice: " + index);
+        SoulLink.Logger.Debug($"Received card selection choice for Pack: {packIndex} Card: {cardIndex} ");
         
         IScreenContext? currentScreen = NOverlayStack.Instance?.Peek();
-        if (currentScreen is NCardRewardSelectionScreen screen && CardRewardHandler.ForcedChoice == -1)
+        if (currentScreen is NCardRewardSelectionScreen screen && CardRewardHandler.CurrentPack == packIndex)
         {
-            CardRewardHandler.ForcedChoice = index;
+            CardRewardHandler.ForcedChoice = cardIndex;
             CardRewardHandler.UpdateScreen(screen);
         }
-        else
+        
+        if (packIndex < CardRewardHandler.CardRewards.Count && packIndex != -1)
         {
-            CardRewardHandler.RewardQueue.Add(index);
+            if (CardRewardHandler.CardRewards[packIndex].IsValid())
+                CardRewardHandler.CardRewards[packIndex].Modulate = Colors.IndianRed;
+            
+            CardRewardHandler.RewardQueue.Add(new Tuple<int, int>(packIndex, cardIndex));
+            SoulLinkHelpers.PreventTravel();
         }
         
         return Task.CompletedTask;
@@ -42,7 +53,8 @@ public class SoulLinkCardRewardAction(Player player, int index) : GameAction
         return new NetSoulLinkCardRewardAction()
         {
             giverIndex = SoulLinkHelpers.GetPlayerIndex(player),
-            cardIndex = index
+            packIndex = packIndex,
+            cardIndex = cardIndex
         };
     }
     
