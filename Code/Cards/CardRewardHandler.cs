@@ -155,19 +155,20 @@ public static class CardRewardHandler
 
     [HarmonyPrefix]
     [HarmonyPatch("OnAlternateRewardSelected")]
-    private static void AlternateRewardPrefix(NCardRewardSelectionScreen __instance, PostAlternateCardRewardAction afterSelected)
+    private static void AlternateRewardPrefix(NCardRewardSelectionScreen __instance, ref PostAlternateCardRewardAction afterSelected)
     {
-        TaskCompletionSource<Tuple<IEnumerable<NCardHolder>, bool>> completionSource = Traverse.Create(__instance)
-            .Field("_completionSource").GetValue<TaskCompletionSource<Tuple<IEnumerable<NCardHolder>, bool>>>();
-
-        if (completionSource != null && (afterSelected == PostAlternateCardRewardAction.DismissScreenAndRemoveReward || ForcedChoice < -1))
+        if (afterSelected == PostAlternateCardRewardAction.DismissScreenAndKeepReward && ForcedChoice < -1)
+            afterSelected = PostAlternateCardRewardAction.DismissScreenAndRemoveReward;
+        
+        if (afterSelected == PostAlternateCardRewardAction.DismissScreenAndRemoveReward)
         {
-            completionSource.SetResult(new Tuple<IEnumerable<NCardHolder>, bool>(System.Array.Empty<NCardHolder>(), true));
-            Player? me = SoulLinkHelpers.GetLocalPlayer();
-            if (me != null && ForcedChoice == -1)
-                RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(new SoulLinkCardRewardAction(me, CurrentPack, -2));
-
-            if (ForcedChoice < -1)
+            if (ForcedChoice == -1)
+            {
+                Player? me = SoulLinkHelpers.GetLocalPlayer();
+                if (me != null && ForcedChoice == -1)
+                    RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(new SoulLinkCardRewardAction(me, CurrentPack, -2));
+            }
+            else if (ForcedChoice < -1)
                 RewardQueue.RemoveAll(t => t.Item1 == CurrentPack);
         }
         

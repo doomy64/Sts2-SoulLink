@@ -15,14 +15,14 @@ public class NetSoulLinkCardRewardAction : INetAction, IPacketSerializable
     {
         writer.WriteInt(giverIndex, 8);
         writer.WriteInt(packIndex, 8);
-        writer.WriteInt(cardIndex, 8);
+        writer.WriteInt(cardIndex);
     }
 
     public void Deserialize(PacketReader reader)
     {
         this.giverIndex = reader.ReadInt(8);
         this.packIndex = reader.ReadInt(8);
-        this.cardIndex = reader.ReadInt(8);
+        this.cardIndex = reader.ReadInt();
     }
 
     public GameAction ToGameAction(Player player)
