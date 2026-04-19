@@ -1,14 +1,10 @@
 ﻿using Godot;
-using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
-using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
-using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardSelection;
-using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Nodes.Screens.ScreenContext;
 
@@ -22,10 +18,8 @@ public class SoulLinkCardRewardAction(Player player, int packIndex, int cardInde
 
     protected override Task ExecuteAction()
     {
-        if (SoulLinkHelpers.GetLocalPlayer() == player)
-        {
+        if (CardRewardHandler.RewardQueue.Any(t => t.Item1 == packIndex))
             return Task.CompletedTask;
-        }
         
         SoulLink.Logger.Debug($"Received card selection choice for Pack: {packIndex} Card: {cardIndex} ");
         
@@ -35,16 +29,15 @@ public class SoulLinkCardRewardAction(Player player, int packIndex, int cardInde
             CardRewardHandler.ForcedChoice = cardIndex;
             CardRewardHandler.UpdateScreen(screen);
         }
+        if (packIndex >= CardRewardHandler.CardRewards.Count || packIndex == -1) 
+            return Task.CompletedTask;
         
-        if (packIndex < CardRewardHandler.CardRewards.Count && packIndex != -1)
-        {
-            if (CardRewardHandler.CardRewards[packIndex].IsValid())
-                CardRewardHandler.CardRewards[packIndex].Modulate = Colors.IndianRed;
+        if (CardRewardHandler.CardRewards[packIndex].IsValid())
+            CardRewardHandler.CardRewards[packIndex].Modulate = Colors.IndianRed;
             
-            CardRewardHandler.RewardQueue.Add(new Tuple<int, int>(packIndex, cardIndex));
-            SoulLinkHelpers.PreventTravel();
-        }
-        
+        CardRewardHandler.RewardQueue.Add(new Tuple<int, int>(packIndex, cardIndex));
+        SoulLinkHelpers.PreventTravel();
+
         return Task.CompletedTask;
     }
 

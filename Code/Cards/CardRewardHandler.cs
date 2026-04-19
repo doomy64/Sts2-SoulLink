@@ -1,5 +1,4 @@
 ﻿using Godot;
-using Godot.Collections;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.CardRewardAlternatives;
 using MegaCrit.Sts2.Core.Entities.Cards;
@@ -7,7 +6,6 @@ using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Entities.Rewards;
 using MegaCrit.Sts2.Core.Hooks;
 using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
-using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.Rewards;
 using MegaCrit.Sts2.Core.Nodes.Screens;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardSelection;
@@ -74,7 +72,7 @@ public static class CardRewardHandler
     
     [HarmonyPrefix]
     [HarmonyPatch("SelectCard")]
-    private static void SelectCardPostfix(NCardRewardSelectionScreen __instance, NCardHolder cardHolder)
+    private static bool SelectCardPrefix(NCardRewardSelectionScreen __instance, NCardHolder cardHolder)
     {
         if (ForcedChoice != -1)
         {
@@ -82,13 +80,13 @@ public static class CardRewardHandler
             ForcedChoice = -1;
             CurrentPack = -1;
             Cleanup();
-            return;
+            return true;
         }
         
         Player? me = SoulLinkHelpers.GetLocalPlayer();
         if (me == null){
             SoulLink.Logger.Error("Failed to find local player");
-            return;
+            return false;
         }
 
         int index = OrigOrder.IndexOf(cardHolder);
@@ -96,12 +94,12 @@ public static class CardRewardHandler
         if (index == -1)
         {
             SoulLink.Logger.Error("Selected card holder does not exist in original cache");
-            return;
+            return false;
         }
         
         SoulLink.Logger.Debug("Linking choice index: " + index);
         RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(new SoulLinkCardRewardAction(me, CurrentPack, index));
-        CurrentPack = -1;
+        return false;
     }
 
     public static void UpdateScreen(NCardRewardSelectionScreen screen)
@@ -136,7 +134,6 @@ public static class CardRewardHandler
             node.CardNode.Modulate = LockedColor;
             node.CardNode.Scale *= 0.75f;
         }
-        //TODO VFX
     }
 
     private static void UnlockCard(NCardHolder node)
@@ -167,6 +164,8 @@ public static class CardRewardHandler
                 Player? me = SoulLinkHelpers.GetLocalPlayer();
                 if (me != null && ForcedChoice == -1)
                     RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(new SoulLinkCardRewardAction(me, CurrentPack, -2));
+
+                afterSelected = PostAlternateCardRewardAction.DoNothing;
             }
             else if (ForcedChoice < -1)
                 RewardQueue.RemoveAll(t => t.Item1 == CurrentPack);
