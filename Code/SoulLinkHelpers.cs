@@ -48,6 +48,6 @@ public static class SoulLinkHelpers
             .GetValue(me, oldCoord, null);
         
         RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(new VoteForMapCoordAction(
-            me, new RunLocation(me.RunState.CurrentMapCoord, me.RunState.CurrentActIndex), null));
+            me, new MapLocation(me.RunState.CurrentMapCoord, me.RunState.CurrentActIndex), null));
     }
 }
