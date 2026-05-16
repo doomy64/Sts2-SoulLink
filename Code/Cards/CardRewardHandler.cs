@@ -36,7 +36,7 @@ public static class CardRewardHandler
         ChainTexture = GD.Load<Texture2D>("res://images/SoulLink/Chains.png");
     }
 
-    [HarmonyPatch("RefreshOptions")]
+    [HarmonyPatch(nameof(NCardRewardSelectionScreen.RefreshOptions))]
     [HarmonyPrefix]
     private static void RefreshOptionsPrefix(NCardRewardSelectionScreen __instance,
         IReadOnlyList<CardCreationResult> options, ref IReadOnlyList<CardRewardAlternative> extraOptions)
@@ -49,7 +49,7 @@ public static class CardRewardHandler
         }
     }
     
-    [HarmonyPatch("RefreshOptions")]
+    [HarmonyPatch(nameof(NCardRewardSelectionScreen.RefreshOptions))]
     [HarmonyPostfix]
     private static void RefreshOptionsPostfix(NCardRewardSelectionScreen __instance, IReadOnlyList<CardCreationResult> options, IReadOnlyList<CardRewardAlternative> extraOptions)
     {
@@ -71,7 +71,7 @@ public static class CardRewardHandler
     }
     
     [HarmonyPrefix]
-    [HarmonyPatch("SelectCard")]
+    [HarmonyPatch(nameof(NCardRewardSelectionScreen.SelectCard))]
     private static bool SelectCardPrefix(NCardRewardSelectionScreen __instance, NCardHolder cardHolder)
     {
         if (ForcedChoice != -1)
@@ -151,13 +151,15 @@ public static class CardRewardHandler
     }
 
     [HarmonyPrefix]
-    [HarmonyPatch("OnAlternateRewardSelected")]
-    private static void AlternateRewardPrefix(NCardRewardSelectionScreen __instance, ref PostAlternateCardRewardAction afterSelected)
+    [HarmonyPatch(nameof(NCardRewardSelectionScreen.OnAlternateRewardSelected))]
+    private static void AlternateRewardPrefix(NCardRewardSelectionScreen __instance, ref int index)
     {
-        if (afterSelected == PostAlternateCardRewardAction.DismissScreenAndKeepReward && ForcedChoice < -1)
-            afterSelected = PostAlternateCardRewardAction.DismissScreenAndRemoveReward;
+        PostAlternateCardRewardAction afterSelected = __instance._extraOptions[index].AfterSelected;
         
-        if (afterSelected == PostAlternateCardRewardAction.DismissScreenAndRemoveReward)
+        if (afterSelected == PostAlternateCardRewardAction.EndSelectionAndDoNotCompleteReward && ForcedChoice < -1)
+            afterSelected = PostAlternateCardRewardAction.EndSelectionAndCompleteReward;
+        
+        if (afterSelected == PostAlternateCardRewardAction.EndSelectionAndCompleteReward)
         {
             if (ForcedChoice == -1)
             {
@@ -196,25 +198,22 @@ public static class CardRewardHandler
             NMapScreen.Instance?.SetTravelEnabled(true);
     }
 
-    [HarmonyPatch(typeof(NRewardsScreen))]
-    [HarmonyPatch("TryEnableProceedButton")]
+    [HarmonyPatch(typeof(NRewardsScreen), nameof(NRewardsScreen.TryEnableProceedButton))]
     [HarmonyPrefix]
     private static bool TryEnableProceedPrefix(NRewardsScreen __instance)
     {
         return RewardQueue.Count <= 0;
     }
     
-    [HarmonyPatch(typeof(NRewardsScreen))]
-    [HarmonyPatch("SetRewards")]
+    [HarmonyPatch(typeof(NRewardsScreen), nameof(NRewardsScreen._Ready))]
     [HarmonyPostfix]
-    private static void SetRewardsPostfix(NRewardsScreen __instance, IEnumerable<Reward> rewards)
+    private static void RewardsScreenPostfix(NRewardsScreen __instance)
     {
         CardRewards.Clear();
-        List<Control> rewardButtons = Traverse.Create(__instance).Field<List<Control>>("_rewardButtons").Value;
-        CardRewards.AddRange(rewardButtons.Where(c => c is NRewardButton { Reward: CardReward}).Cast<NRewardButton>());
+        CardRewards.AddRange(__instance._rewardButtons.Where(c => c is NRewardButton { Reward: CardReward}).Cast<NRewardButton>());
     }
 
-    [HarmonyPatch(typeof(NRewardButton), "OnRelease")]
+    [HarmonyPatch(typeof(NRewardButton), nameof(NRewardButton.OnRelease))]
     [HarmonyPrefix]
     private static void EnterRewardPatch(NRewardButton __instance)
     {
@@ -222,8 +221,7 @@ public static class CardRewardHandler
         CurrentPack = CardRewards.IndexOf(__instance);
     }
     
-    [HarmonyPatch(typeof(Hook))]
-    [HarmonyPatch("AfterRoomEntered")]
+    [HarmonyPatch(typeof(Hook), nameof(Hook.AfterRoomEntered))]
     [HarmonyPrefix]
     private static void AfterRoomEnteredHook(IRunState runState, AbstractRoom room)
     {

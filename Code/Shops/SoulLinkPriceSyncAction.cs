@@ -17,7 +17,7 @@ public class SoulLinkPriceSyncAction(
     public override GameActionType ActionType => GameActionType.NonCombat;
 
 
-    protected override Task ExecuteAction()
+    public override Task ExecuteAction()
     {
         int playerIndex = SoulLinkHelpers.GetPlayerIndex(player);
         MerchantHandler.ShopPrices[playerIndex].Clear();

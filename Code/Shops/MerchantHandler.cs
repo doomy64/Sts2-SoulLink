@@ -83,7 +83,7 @@ public static class MerchantHandler
         }
     }
 
-    [HarmonyPatch(typeof(NMerchantRoom), "AfterRoomIsLoaded")]
+    [HarmonyPatch(typeof(NMerchantRoom), nameof(NMerchantRoom.AfterRoomIsLoaded))]
     [HarmonyPostfix]
     public static void EnterMerchantRoomPatch(NMerchantRoom __instance)
     {
@@ -218,7 +218,7 @@ public static class MerchantHandler
         }
     }
 
-    [HarmonyPatch(typeof(MerchantEntry), "OnTryPurchaseWrapper")]
+    [HarmonyPatch(typeof(MerchantEntry), nameof(MerchantEntry.OnTryPurchaseWrapper))]
     [HarmonyPrefix]
     public static bool TryPurchasePatch(MerchantEntry __instance, Task<bool> __result, MerchantInventory? inventory,
         bool ignoreCost)
@@ -246,7 +246,7 @@ public static class MerchantHandler
         return true;
     }
     
-    [HarmonyPatch(typeof(MerchantEntry), "EnoughGold", MethodType.Getter)]
+    [HarmonyPatch(typeof(MerchantEntry), nameof(MerchantEntry.EnoughGold), MethodType.Getter)]
     [HarmonyPrefix]
     private static bool EnoughGoldPatch(MerchantEntry __instance, ref bool __result)
     {
@@ -307,6 +307,7 @@ public static class MerchantHandler
             SoulLink.Logger.Error("Failed to find local player in MerchantHandler.Update");
             return;
         }
+        
         Traverse.Create(me).Field<Action>("GoldChanged").Value.Invoke();
         
         NMerchantRoom? room = NMerchantRoom.Instance;
@@ -354,7 +355,7 @@ public static class MerchantHandler
         }
     }
 
-    [HarmonyPatch(typeof(NMapScreen), "SetTravelEnabled")]
+    [HarmonyPatch(typeof(NMapScreen), nameof(NMapScreen.SetTravelEnabled))]
     [HarmonyPrefix]
     private static void TravelEnabledPatch(NMapScreen __instance, ref bool enabled)
     {
@@ -363,7 +364,7 @@ public static class MerchantHandler
         
     }
 
-    [HarmonyPatch(typeof(Player), "AddRelicInternal")]
+    [HarmonyPatch(typeof(Player), nameof(Player.AddRelicInternal))]
     [HarmonyPostfix]
     private static void AddRelicPatch(Player __instance, RelicModel relic, int index, bool silent)
     {

@@ -16,7 +16,7 @@ public class SoulLinkCardRewardAction(Player player, int packIndex, int cardInde
 
     public override GameActionType ActionType => GameActionType.NonCombat;
 
-    protected override Task ExecuteAction()
+    public override Task ExecuteAction()
     {
         if (CardRewardHandler.RewardQueue.Any(t => t.Item1 == packIndex))
             return Task.CompletedTask;

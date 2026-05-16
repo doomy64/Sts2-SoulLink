@@ -10,7 +10,7 @@ public class SoulLinkPurchaseAction(Player buyer, MerchantHandler.ShopSlot slot,
     public override ulong OwnerId => buyer.NetId;
     public override GameActionType ActionType => GameActionType.NonCombat;
     
-    protected override Task ExecuteAction()
+    public override Task ExecuteAction()
     {
         MerchantHandler.Purchase(slot, index);
         MerchantHandler.ForcedBuys.Add(new Tuple<MerchantHandler.ShopSlot, int>(slot, index));
