@@ -38,17 +38,14 @@ public static class MerchantHandler
         if (player >= ShopPrices.Count)
             return -1;
 
-        //SoulLink.Logger.Info($"{player} < {ShopPrices.Count}");
         List<List<int>> slots = ShopPrices[player];
         if ((int)slot >= slots.Count)
             return -1;
         
-        //SoulLink.Logger.Info($"{(int)slot} < {slots.Count}");
         List<int> prices = slots[(int)slot];
         if (index >= prices.Count)
             return -1;
 
-        //SoulLink.Logger.Info($"{index} < {prices.Count}");
         return prices[index];
     }
 
@@ -69,11 +66,6 @@ public static class MerchantHandler
         }
 
         return true;
-    }
-
-    public static void SyncPrices()
-    {
-        
     }
 
     public static void Purchase(ShopSlot slot, int index)
@@ -122,92 +114,94 @@ public static class MerchantHandler
         inventory.CardEntries.Do(c =>
         {
             currentCards.Add(c.Cost);
-            c.PurchaseCompleted += OnCardPurchased;
+            c.PurchaseCompleted += OnPurchase;
         });
 
         List<int> currentRelics = new List<int>();
         inventory.RelicEntries.Do(r =>
         {
             currentRelics.Add(r.Cost);
-            r.PurchaseCompleted += OnRelicPurchased;
+            r.PurchaseCompleted += OnPurchase;
         });
         
         List<int> currentPotions = new List<int>();
         inventory.PotionEntries.Do(p =>
         {
             currentPotions.Add(p.Cost);
-            p.PurchaseCompleted += OnPotionPurchased;
+            p.PurchaseCompleted += OnPurchase;
         });
 
         int removal = -1;
         if (inventory.CardRemovalEntry != null)
         {
             removal = inventory.CardRemovalEntry.Cost;
-            inventory.CardRemovalEntry.PurchaseCompleted += OnRemovalPurchased;
+            inventory.CardRemovalEntry.PurchaseCompleted += OnPurchase;
         }
 
         RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(
             new SoulLinkPriceSyncAction(me, currentCards, currentRelics, currentPotions, removal));
     }
 
-    private static void OnCardPurchased(PurchaseStatus arg1, MerchantEntry arg2)
+    private static Tuple<ShopSlot, int> GetEntryIndex(MerchantEntry entry)
     {
-        QueuePurchase(ShopSlot.Card, arg2);
-    }
-    
-    private static void OnRelicPurchased(PurchaseStatus arg1, MerchantEntry arg2)
-    {
-        QueuePurchase(ShopSlot.Relic, arg2);
-    }
-
-    private static void OnPotionPurchased(PurchaseStatus arg1, MerchantEntry arg2)
-    {
-        QueuePurchase(ShopSlot.Potion, arg2);
-    }
-
-    private static void OnRemovalPurchased(PurchaseStatus arg1, MerchantEntry arg2)
-    {
-        QueuePurchase(ShopSlot.Removal, arg2);
-    }
-
-    private static void QueuePurchase(ShopSlot slot, MerchantEntry entry)
-    {
+        Tuple<ShopSlot, int> nullResult = new Tuple<ShopSlot, int>(ShopSlot.MAX, -1);
         NMerchantRoom? room = NMerchantRoom.Instance;
         if (room == null)
         {
             SoulLink.Logger.Error("Attempted to purchased a item outside of a merchant");
-            return;
+            return nullResult;
         }
 
         MerchantInventory? inventory = room.Inventory.Inventory;
         if (inventory == null)
         {
             SoulLink.Logger.Error("Attempted to purchased an item in non-existent inventory");
-            return;
+            return nullResult;
         }
 
+        ShopSlot slot = ShopSlot.MAX;
         int index = -1;
         
-        switch (slot)
+        switch (entry)
         {
-            case ShopSlot.Card:
-                index = inventory.CardEntries.ToList().IndexOf((MerchantCardEntry)entry);
+            case MerchantCardEntry cardEntry:
+                slot = ShopSlot.Card;
+                index = inventory.CardEntries.ToList().IndexOf(cardEntry);
                 break;
-            case ShopSlot.Relic:
-                index = inventory.RelicEntries.ToList().IndexOf((MerchantRelicEntry)entry);
+            case MerchantRelicEntry relicEntry:
+                slot = ShopSlot.Relic;
+                index = inventory.RelicEntries.ToList().IndexOf(relicEntry);
                 break;
-            case ShopSlot.Potion:
-                index = inventory.PotionEntries.ToList().IndexOf((MerchantPotionEntry)entry);
+            case MerchantPotionEntry potionEntry:
+                slot = ShopSlot.Potion;
+                index = inventory.PotionEntries.ToList().IndexOf(potionEntry);
                 break;
-            case ShopSlot.Removal:
+            case MerchantCardRemovalEntry removalEntry:
+                slot = ShopSlot.Removal;
                 index = 0;
                 break;
         }
         if (index == -1)
         {
             SoulLink.Logger.Error("Purchased item that doesn't exist in inventory");
-            return;
+            return nullResult;
         }
+
+        return new Tuple<ShopSlot, int>(slot, index);
+    }
+
+    private static void OnPurchase(PurchaseStatus status, MerchantEntry entry)
+    {
+        if (status != PurchaseStatus.Success)
+            return;
+        
+        Tuple<ShopSlot, int> entryIndex = GetEntryIndex(entry);
+
+        if (entryIndex.Item1 == ShopSlot.MAX || entryIndex.Item2 == -1)
+            return;
+
+        ShopSlot slot = entryIndex.Item1;
+        int index = entryIndex.Item2;
 
         Player? me = SoulLinkHelpers.GetLocalPlayer();
         if (me == null)
@@ -222,10 +216,34 @@ public static class MerchantHandler
             ForcedBuys.RemoveAt(forceIndex);
             Update();
         }
-        else
+    }
+
+    [HarmonyPatch(typeof(MerchantEntry), "OnTryPurchaseWrapper")]
+    [HarmonyPrefix]
+    public static bool TryPurchasePatch(MerchantEntry __instance, Task<bool> __result, MerchantInventory? inventory,
+        bool ignoreCost)
+    {
+        Tuple<ShopSlot, int> entryIndex = GetEntryIndex(__instance);
+        int forceIndex = ForcedBuys.FindIndex(t => t.Item1 == entryIndex.Item1 && t.Item2 == entryIndex.Item2);
+        if (forceIndex != -1)
+            return true;
+
+        if (__instance.IsStocked && __instance.EnoughGold && !ignoreCost)
         {
-            RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(new SoulLinkPurchaseAction(me, slot, index));
+            
+            Player? me = SoulLinkHelpers.GetLocalPlayer();
+            if (me == null)
+            {
+                SoulLink.Logger.Error("Failed to find local player in OnSuccessfulPurchase");
+                return true;
+            }
+            
+            RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(new SoulLinkPurchaseAction(me, entryIndex.Item1, entryIndex.Item2));
+            __result = new Task<bool>(() => false);
+            return false;
         }
+
+        return true;
     }
     
     [HarmonyPatch(typeof(MerchantEntry), "EnoughGold", MethodType.Getter)]

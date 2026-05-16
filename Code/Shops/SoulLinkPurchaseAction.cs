@@ -13,9 +13,7 @@ public class SoulLinkPurchaseAction(Player buyer, MerchantHandler.ShopSlot slot,
     protected override Task ExecuteAction()
     {
         MerchantHandler.Purchase(slot, index);
-        if (SoulLinkHelpers.GetLocalPlayer() != buyer)
-            MerchantHandler.ForcedBuys.Add(new Tuple<MerchantHandler.ShopSlot, int>(slot, index));
-
+        MerchantHandler.ForcedBuys.Add(new Tuple<MerchantHandler.ShopSlot, int>(slot, index));
         MerchantHandler.Update();
         
         return Task.CompletedTask;
